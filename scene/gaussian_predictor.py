@@ -5,11 +5,13 @@ import torchvision
 import numpy as np
 import torch
 from torch.nn.functional import silu
+from huggingface_hub import PyTorchModelHubMixin
 
 from einops import rearrange, repeat
 
 from utils.general_utils import matrix_to_quaternion, quaternion_raw_multiply
 from utils.graphics_utils import fov2focal
+from omegaconf import OmegaConf
 
 # U-Net implementation from EDM
 # Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
@@ -474,9 +476,16 @@ def networkCallBack(cfg, name, out_channels, **kwargs):
     else:
         raise NotImplementedError
 
-class GaussianSplatPredictor(nn.Module):
+class GaussianSplatPredictor(nn.Module,
+                             PyTorchModelHubMixin,
+                             library_name="splatter-image",
+                             repo_url="https://github.com/szymanowiczs/splatter-image",
+                             docs_url = "https://github.com/szymanowiczs/splatter-image/blob/main/README.md",
+                             tags = ["image-to-3d"]):
     def __init__(self, cfg):
         super(GaussianSplatPredictor, self).__init__()
+        if isinstance(cfg,dict) : 
+            cfg = OmegaConf.create(cfg)
         self.cfg = cfg
         assert cfg.model.network_with_offset or cfg.model.network_without_offset, \
             "Need at least one network"
